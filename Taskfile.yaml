@@ -1,0 +1,68 @@
+version: 3
+
+env:
+  REPOS: "gitops-engine argo-cd"
+  ARGO_CD_VERSION: "v2.11.0"
+  GITOPS_ENGINE_VERSION: "argo-cd-release-2.11"
+  IMAGE_NAMESPACE: ghcr.io/hodorov/argo-flux
+  # DOCKER_PUSH: true
+  GITOPS_ENGINE_LAST_PATH:
+    sh: "cat patches/gitops-engine/series | cut -d- -f1 | tail -1"
+  ARGO_CD_LAST_PATH:
+    sh: "cat patches/argo-cd/series | cut -d- -f1 | tail -1"
+  BRANCH:
+    sh: "[[ -n $GITHUB_REF_NAME ]] && echo $GITHUB_REF_NAME || git rev-parse --abbrev-ref HEAD"
+  COMMIT:
+    sh: "([[ -n $GITHUB_SHA ]] && echo $GITHUB_SHA || git rev-parse HEAD) | head -c8"
+  VERSION: "{{.ARGO_CD_VERSION}}.awf.g{{.GITOPS_ENGINE_LAST_PATH}}.a{{.ARGO_CD_LAST_PATH}}-{{.BRANCH}}-{{.COMMIT}}"
+tasks:
+  cleanup:
+    cmds:
+      - cmd: rm -rf ./{{.ITEM}}
+        for: {var: REPOS}
+
+  _clone:
+    internal: true
+    label: "clone-{{.REPO}}-{{.VERSION}}"
+    cmds:
+      - git clone --single-branch -b {{.VERSION}} https://github.com/argoproj/{{.REPO}}
+      - cd {{.REPO}} && git checkout -b patches {{.VERSION}}
+      - cd {{.REPO}} && stg init
+
+  clone:
+    deps:
+      - task: _clone
+        vars: { REPO: "gitops-engine", VERSION: "{{.GITOPS_ENGINE_VERSION}}" }
+      - task: _clone
+        vars: { REPO: "argo-cd", VERSION: "{{.ARGO_CD_VERSION}}" }
+
+  prepare:
+    cmds:
+      - task: cleanup
+      - task: clone
+
+  patch:
+    cmds:
+      - cmd: cd {{.ITEM}} && stg import -t --series ../patches/{{.ITEM}}/series
+        for: { var: REPOS }
+
+  build:
+    cmds:
+      - rm -rf argo-cd/gitops-engine
+      - cp -r gitops-engine argo-cd/gitops-engine
+      - cd argo-cd && IMAGE_TAG=$VERSION make image
+
+  _export-patch:
+    internal: true
+    label: "export-patch-{{.ITEM}}"
+    dir: "{{.ITEM}}"
+    cmds:
+      - stg repair
+      - stg export -n -p -d ../patches/{{.ITEM}}
+
+  export-patch:
+    deps:
+      - task: _export-patch
+        for: { var: REPOS }
+        vars:
+          ITEM: "{{.ITEM}}"

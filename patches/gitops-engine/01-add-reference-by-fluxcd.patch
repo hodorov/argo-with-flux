@@ -1,0 +1,42 @@
+Add reference by fluxcd annotations
+
+From: el1191 <el1191@woyd.ru>
+
+
+---
+ pkg/cache/references.go |   22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/pkg/cache/references.go b/pkg/cache/references.go
+index 2189836..861370d 100644
+--- a/pkg/cache/references.go
++++ b/pkg/cache/references.go
+@@ -55,6 +55,28 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
+ 		} else {
+ 			isInferredParentOf = refs
+ 		}
++
++	default:
++		if len(un.GetOwnerReferences()) == 0 {
++			labels := un.GetLabels()
++			// Kustomization
++			if labels["kustomize.toolkit.fluxcd.io/name"] != "" {
++				ownerRefs = append(ownerRefs, metav1.OwnerReference{
++					Name:       labels["kustomize.toolkit.fluxcd.io/name"],
++					Kind:       "Kustomization",
++					APIVersion: "kustomize.toolkit.fluxcd.io/v1",
++				})
++			}
++			// HelmRelease
++			if labels["helm.toolkit.fluxcd.io/name"] != "" {
++				ownerRefs = append(ownerRefs, metav1.OwnerReference{
++					Name:       labels["helm.toolkit.fluxcd.io/name"],
++					Kind:       "HelmRelease",
++					APIVersion: "helm.toolkit.fluxcd.io/v2beta2",
++				})
++			}
++		}
++
+ 	}
+ 
+ 	return ownerRefs, isInferredParentOf
