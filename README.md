@@ -1,7 +1,24 @@
 # Argo with Flux
 This repository contains patches to bridge Flux controlled resource with Argo app.
 
-# Why vanilla Argo can't work with Flux resources
+# Why just not use WeaveWorks GitOps?
+If you use Flux **without** Argo it has its own third-party UI, WeaveWorks GitOps. But developer
+company was [closed](https://www.crn.com/news/cloud/2024/aws-backed-kubernetes-company-weaveworks-closes-ceo-blames-failed-m-a)
+at the beginning of 2024
+
+If you use Flux **with** Argo - two different UI tools is not so many useful without integration
+between them.
+
+Basically, **all main functionality of WeaveWorks GitOps already ported to Argo with patches**
+(CR status, custom actions, tree of controlled resources from app)
+
+# Why just not use Argo without Flux?
+Argo has a custom logic about helm chart applying. Before deploy Argo render Helm chart templates,
+it broke some logic of complicated charts. For example - broken hooks lifecycle, unusable lookup
+functionality and some other cases. Main purpose to use Argo with Flux together - Argo deploy
+static manifests, Flux deploy Helm charts
+
+# Why vanilla Argo can't work with Flux resources?
 By default, **Argo** show nested resource(implicitly created by some manifest from app) **using
 ownerReference metadata** from cluster (as main path) and some corner case logic for custom
 kind of resource. Unfortunately **Flux don't use this logic** because child of Flux resource
@@ -14,7 +31,7 @@ To solve this problem we need
 * Patch gitops-engine(core of Argo) to implement owner referencing by Flux labels
 * Recompile Argo with local version of gitops-engine
 
-# Additional benefits
+# Additional benefits of patched version
 * Health status for Flux resource
 * Actions for Flux resource - (force) reconcile/suspend/resume from Argo UI
 
