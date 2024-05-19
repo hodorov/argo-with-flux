@@ -14,6 +14,10 @@ To solve this problem we need
 * Patch gitops-engine(core of Argo) to implement owner referencing by Flux labels
 * Recompile Argo with local version of gitops-engine
 
+# Additional benefits
+* Health status for Flux resource
+* Actions for Flux resource - (force) reconcile/suspend/resume from Argo UI
+
 # Versioning
 Example tag: `v2.11.0.awf.g01.a01-main-bac623a5`
 This tag represents a specific version with the following components:
