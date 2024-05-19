@@ -1,6 +1,10 @@
 # Argo with Flux
 This repository contains patches to bridge Flux controlled resource with Argo app.
 
+# Important notice
+**HelmRelease must be v2(without beta\* suffix)**, this CR version introduced in **Flux 2.3.0**, so you
+need use **at least this version**(or above)
+
 # Why just not use WeaveWorks GitOps?
 If you use Flux **without** Argo it has its own third-party UI, WeaveWorks GitOps. But developer
 company was [closed](https://www.crn.com/news/cloud/2024/aws-backed-kubernetes-company-weaveworks-closes-ceo-blames-failed-m-a)
