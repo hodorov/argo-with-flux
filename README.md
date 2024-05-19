@@ -1,6 +1,19 @@
 # Argo with Flux
 This repository contains patches to bridge Flux controlled resource with Argo app.
 
+# Example
+## Without patches
+* No resource tracking
+* No custom actions (reconcile/suspend)
+![without_awf](img/without_awf.png)
+
+## Patched version
+* Actual status of resource from helm-controller/kustomizaion-controller by Flux
+  (In example HelmRelease suspended using the appropriate button)
+* All common actions available in Flux CLI may be performed via UI
+* All resource created by HelmRelease tracked properly
+![img.png](img/with_awf.png)
+
 # Important notice
 **HelmRelease must be v2(without beta\* suffix)**, this CR version introduced in **Flux 2.3.0**, so you
 need use **at least this version**(or above)
