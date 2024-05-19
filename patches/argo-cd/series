@@ -1,3 +1,4 @@
 # This series applies on Git commit d3f33c00197e7f1d16f2a73ce1aeced464b07175
 01-use-pathced-vesion-of-gitops.patch
 02-add-health-actions-for-helm-cr.patch
+03-fix-version.patch

@@ -53,7 +53,7 @@ To solve this problem we need
 * Actions for Flux resource - (force) reconcile/suspend/resume from Argo UI
 
 # Versioning
-Example tag: `v2.11.0.awf.g01.a01-main-bac623a5`
+Example tag: `v2.11.0-awf.g01.a01-main-bac623a5`
 This tag represents a specific version with the following components:
 
 - `v2.11.0`: Base version of ArgoCD

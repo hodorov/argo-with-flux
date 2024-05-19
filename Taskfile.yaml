@@ -6,7 +6,6 @@ env:
   ARGO_CD_VERSION: "v2.11.0"
   GITOPS_ENGINE_VERSION: "argo-cd-release-2.11"
   IMAGE_NAMESPACE: "ghcr.io/hodorov/argo-with-flux"
-  # DOCKER_PUSH: true
   GITOPS_ENGINE_LAST_PATH:
     sh: "cat patches/gitops-engine/series | cut -d- -f1 | tail -1"
   ARGO_CD_LAST_PATH:
@@ -15,12 +14,12 @@ env:
     sh: "[[ -n $GITHUB_REF_NAME ]] && echo $GITHUB_REF_NAME || git rev-parse --abbrev-ref HEAD"
   COMMIT:
     sh: "([[ -n $GITHUB_SHA ]] && echo $GITHUB_SHA || git rev-parse HEAD) | head -c8"
-  VERSION: "{{.ARGO_CD_VERSION}}.awf.g{{.GITOPS_ENGINE_LAST_PATH}}.a{{.ARGO_CD_LAST_PATH}}-{{.BRANCH}}-{{.COMMIT}}"
+  VERSION: "{{.ARGO_CD_VERSION}}-awf.g{{.GITOPS_ENGINE_LAST_PATH}}.a{{.ARGO_CD_LAST_PATH}}-{{.BRANCH}}-{{.COMMIT}}"
 tasks:
   cleanup:
     cmds:
       - cmd: rm -rf ./{{.ITEM}}
-        for: {var: REPOS}
+        for: { var: REPOS }
 
   _clone:
     internal: true
@@ -51,7 +50,18 @@ tasks:
     cmds:
       - rm -rf argo-cd/gitops-engine
       - cp -r gitops-engine argo-cd/gitops-engine
-      - cd argo-cd && IMAGE_TAG=$VERSION make image
+      - echo '{{.VERSION}}' | cut -c 2- > argo-cd/VERSION
+      - >
+        cd argo-cd && BUILDKIT_PROGRESS=plain DOCKER_BUILDKIT=1 docker build
+        -t {{.IMAGE_NAMESPACE}}/argocd:{{.VERSION}}
+        --platform=linux/amd64
+        --build-arg GIT_TAG={{.VERSION}}
+        --build-arg GIT_COMMIT={{.COMMIT}}
+        --build-arg GIT_TREE_STATE=clean
+        .
+
+  push:
+    cmd: docker push {{.IMAGE_NAMESPACE}}/argocd:{{.VERSION}}
 
   _export-patch:
     internal: true

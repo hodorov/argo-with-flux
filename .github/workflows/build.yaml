@@ -33,4 +33,4 @@ jobs:
           version: 3.x
       - name: Build
         shell: bash
-        run: DOCKER_PUSH=true task prepare patch build
+        run: task prepare patch build push
