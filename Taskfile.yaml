@@ -40,6 +40,7 @@ tasks:
     cmds:
       - task: cleanup
       - task: clone
+      - ln -s ../gitops-engine argo-cd/gitops-engine
 
   patch:
     cmds:
