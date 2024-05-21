@@ -1,0 +1,406 @@
+Track cluster-wide resources (GH-3)
+
+From: el1191 <el1191@woyd.ru>
+
+
+---
+ pkg/cache/cluster.go                  |    6 +-
+ pkg/cache/cluster_test.go             |   93 ++++++++++++++++++++++++++-------
+ pkg/cache/extended_owner_reference.go |   10 ++++
+ pkg/cache/references.go               |   25 +++++++--
+ pkg/cache/resource.go                 |    5 ++
+ pkg/cache/resource_test.go            |   16 ++++++
+ pkg/cache/utils_test.go               |   74 ++++++++++++++++++++++++++
+ 7 files changed, 202 insertions(+), 27 deletions(-)
+ create mode 100644 pkg/cache/extended_owner_reference.go
+ create mode 100644 pkg/cache/utils_test.go
+
+diff --git a/pkg/cache/cluster.go b/pkg/cache/cluster.go
+index 02ca189..197cc95 100644
+--- a/pkg/cache/cluster.go
++++ b/pkg/cache/cluster.go
+@@ -369,7 +369,7 @@ func (c *clusterCache) replaceResourceCache(gk schema.GroupKind, resources []*Re
+ }
+
+ func (c *clusterCache) newResource(un *unstructured.Unstructured) *Resource {
+-	ownerRefs, isInferredParentOf := c.resolveResourceReferences(un)
++	ownerRefs, fluxOwnerRef, isInferredParentOf := c.resolveResourceReferences(un)
+
+ 	cacheManifest := false
+ 	var info interface{}
+@@ -385,6 +385,7 @@ func (c *clusterCache) newResource(un *unstructured.Unstructured) *Resource {
+ 		ResourceVersion:    un.GetResourceVersion(),
+ 		Ref:                kube.GetObjectRef(un),
+ 		OwnerRefs:          ownerRefs,
++		FluxOwnerRef:       fluxOwnerRef,
+ 		Info:               info,
+ 		CreationTimestamp:  creationTimestamp,
+ 		isInferredParentOf: isInferredParentOf,
+@@ -977,7 +978,8 @@ func (c *clusterCache) IterateHierarchy(key kube.ResourceKey, action func(resour
+ 			return
+ 		}
+ 		childrenByUID := make(map[types.UID][]*Resource)
+-		for _, child := range nsNodes {
++		// We may have reference by Flux in different namespace or cluster-wide
++		for _, child := range c.resources {
+ 			if res.isParentOf(child) {
+ 				childrenByUID[child.Ref.UID] = append(childrenByUID[child.Ref.UID], child)
+ 			}
+diff --git a/pkg/cache/cluster_test.go b/pkg/cache/cluster_test.go
+index 68221ab..1e54545 100644
+--- a/pkg/cache/cluster_test.go
++++ b/pkg/cache/cluster_test.go
+@@ -492,23 +492,23 @@ metadata:
+ func TestGetManagedLiveObjsFailedConversion(t *testing.T) {
+ 	cronTabGroup := "stable.example.com"
+
+-	testCases := []struct{
+-		name string
+-		localConvertFails bool
++	testCases := []struct {
++		name                         string
++		localConvertFails            bool
+ 		expectConvertToVersionCalled bool
+-		expectGetResourceCalled bool
++		expectGetResourceCalled      bool
+ 	}{
+ 		{
+-			name: "local convert fails, so GetResource is called",
+-			localConvertFails: true,
++			name:                         "local convert fails, so GetResource is called",
++			localConvertFails:            true,
+ 			expectConvertToVersionCalled: true,
+-			expectGetResourceCalled: true,
++			expectGetResourceCalled:      true,
+ 		},
+ 		{
+-			name: "local convert succeeds, so GetResource is not called",
+-			localConvertFails: false,
++			name:                         "local convert succeeds, so GetResource is not called",
++			localConvertFails:            false,
+ 			expectConvertToVersionCalled: true,
+-			expectGetResourceCalled: false,
++			expectGetResourceCalled:      false,
+ 		},
+ 	}
+
+@@ -557,7 +557,6 @@ metadata:
+ 					return testCronTab(), nil
+ 				})
+
+-
+ 			managedObjs, err := cluster.GetManagedLiveObjs([]*unstructured.Unstructured{targetDeploy}, func(r *Resource) bool {
+ 				return true
+ 			})
+@@ -816,25 +815,25 @@ func testPod() *corev1.Pod {
+
+ func testCRD() *apiextensions.CustomResourceDefinition {
+ 	return &apiextensions.CustomResourceDefinition{
+-		TypeMeta:   metav1.TypeMeta{
++		TypeMeta: metav1.TypeMeta{
+ 			APIVersion: "apiextensions.k8s.io/v1",
+ 		},
+ 		ObjectMeta: metav1.ObjectMeta{
+ 			Name: "crontabs.stable.example.com",
+ 		},
+-		Spec:       apiextensions.CustomResourceDefinitionSpec{
++		Spec: apiextensions.CustomResourceDefinitionSpec{
+ 			Group: "stable.example.com",
+ 			Versions: []apiextensions.CustomResourceDefinitionVersion{
+ 				{
+-					Name: "v1",
+-					Served: true,
++					Name:    "v1",
++					Served:  true,
+ 					Storage: true,
+ 					Schema: &apiextensions.CustomResourceValidation{
+ 						OpenAPIV3Schema: &apiextensions.JSONSchemaProps{
+ 							Type: "object",
+ 							Properties: map[string]apiextensions.JSONSchemaProps{
+ 								"cronSpec": {Type: "string"},
+-								"image": {Type: "string"},
++								"image":    {Type: "string"},
+ 								"replicas": {Type: "integer"},
+ 							},
+ 						},
+@@ -855,14 +854,14 @@ func testCRD() *apiextensions.CustomResourceDefinition {
+ func testCronTab() *unstructured.Unstructured {
+ 	return &unstructured.Unstructured{Object: map[string]interface{}{
+ 		"apiVersion": "stable.example.com/v1",
+-		"kind": "CronTab",
++		"kind":       "CronTab",
+ 		"metadata": map[string]interface{}{
+-			"name": "test-crontab",
++			"name":      "test-crontab",
+ 			"namespace": "default",
+ 		},
+ 		"spec": map[string]interface{}{
+ 			"cronSpec": "* * * * */5",
+-			"image": "my-awesome-cron-image",
++			"image":    "my-awesome-cron-image",
+ 		},
+ 	}}
+ }
+@@ -1006,3 +1005,59 @@ func TestIterateHierachy(t *testing.T) {
+ 			keys)
+ 	})
+ }
++
++func TestHelmRelease(t *testing.T) {
++	cluster := newCluster(t, serviceSameNs.DeepCopyObject(), externalServiceSameNs.DeepCopyObject(), serviceOtherNs.DeepCopyObject(), clusterRole.DeepCopyObject(), helmRelease.DeepCopyObject()).
++		WithAPIResources([]kube.APIResourceInfo{
++			{
++				GroupKind:            schema.GroupKind{Group: "", Kind: "Service"},
++				GroupVersionResource: schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
++				Meta:                 metav1.APIResource{Namespaced: true},
++			},
++			{
++				GroupKind:            schema.GroupKind{Group: "rbac.authorization.k8s.io", Kind: "ClusterRole"},
++				GroupVersionResource: schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"},
++				Meta:                 metav1.APIResource{Namespaced: false},
++			},
++			{
++				GroupKind:            schema.GroupKind{Group: "helm.toolkit.fluxcd.io", Kind: "HelmRelease"},
++				GroupVersionResource: schema.GroupVersionResource{Group: "helm.toolkit.fluxcd.io", Version: "v2", Resource: "helmreleases"},
++				Meta:                 metav1.APIResource{Namespaced: true},
++			},
++		})
++	err := cluster.EnsureSynced()
++	require.NoError(t, err)
++
++	//helmReleaseOwnerReference := c.newResource(helmRelease).toOwnerRef()
++	resource := cluster.resources[kube.ResourceKey{
++		Group:     serviceSameNs.GetObjectKind().GroupVersionKind().Group,
++		Kind:      serviceSameNs.GetKind(),
++		Namespace: serviceSameNs.GetNamespace(),
++		Name:      serviceSameNs.GetName(),
++	}]
++	assert.Len(t, resource.OwnerRefs, 1)
++	assert.Equal(t, helmRelease.GetObjectKind().GroupVersionKind().GroupVersion().String(), resource.OwnerRefs[0].APIVersion)
++	assert.Equal(t, helmRelease.GetName(), resource.OwnerRefs[0].Name)
++
++	resource = cluster.resources[kube.ResourceKey{
++		Group:     serviceOtherNs.GetObjectKind().GroupVersionKind().Group,
++		Kind:      serviceOtherNs.GetKind(),
++		Namespace: serviceOtherNs.GetNamespace(),
++		Name:      serviceOtherNs.GetName(),
++	}]
++	assert.Len(t, resource.OwnerRefs, 1)
++	assert.Equal(t, helmRelease.GetObjectKind().GroupVersionKind().GroupVersion().String(), resource.OwnerRefs[0].APIVersion)
++	assert.Equal(t, helmRelease.GetName(), resource.OwnerRefs[0].Name)
++
++	resource = cluster.resources[kube.ResourceKey{
++		Group:     clusterRole.GetObjectKind().GroupVersionKind().Group,
++		Kind:      clusterRole.GetKind(),
++		Namespace: clusterRole.GetNamespace(),
++		Name:      clusterRole.GetName(),
++	}]
++	assert.Len(t, resource.OwnerRefs, 1)
++	assert.Equal(t, helmRelease.GetObjectKind().GroupVersionKind().GroupVersion().String(), resource.OwnerRefs[0].APIVersion)
++	assert.Equal(t, helmRelease.GetName(), resource.OwnerRefs[0].Name)
++
++	assert.Len(t, getChildren(cluster, helmRelease), 3)
++}
+diff --git a/pkg/cache/extended_owner_reference.go b/pkg/cache/extended_owner_reference.go
+new file mode 100644
+index 0000000..93aa9a2
+--- /dev/null
++++ b/pkg/cache/extended_owner_reference.go
+@@ -0,0 +1,10 @@
++package cache
++
++import (
++	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++)
++
++type ExtendedOwnerReference struct {
++	metav1.OwnerReference
++	Namespace string
++}
+diff --git a/pkg/cache/references.go b/pkg/cache/references.go
+index 5d112a4..5d19b2d 100644
+--- a/pkg/cache/references.go
++++ b/pkg/cache/references.go
+@@ -18,10 +18,11 @@ func mightHaveInferredOwner(r *Resource) bool {
+ 	return r.Ref.GroupVersionKind().Group == "" && r.Ref.Kind == kube.PersistentVolumeClaimKind
+ }
+
+-func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured) ([]metav1.OwnerReference, func(kube.ResourceKey) bool) {
++func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured) ([]metav1.OwnerReference, *ExtendedOwnerReference, func(kube.ResourceKey) bool) {
+ 	var isInferredParentOf func(_ kube.ResourceKey) bool
+ 	ownerRefs := un.GetOwnerReferences()
+ 	gvk := un.GroupVersionKind()
++	var fluxOwnerRef *ExtendedOwnerReference = nil
+
+ 	switch {
+
+@@ -61,25 +62,37 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
+ 			labels := un.GetLabels()
+ 			// Kustomization
+ 			if labels["kustomize.toolkit.fluxcd.io/name"] != "" {
+-				ownerRefs = append(ownerRefs, metav1.OwnerReference{
++				ownerRef := metav1.OwnerReference{
+ 					Name:       labels["kustomize.toolkit.fluxcd.io/name"],
+ 					Kind:       "Kustomization",
+ 					APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+-				})
++				}
++				ownerRefs = append(ownerRefs, ownerRef)
++				extendedOwnerReference := ExtendedOwnerReference{
++					OwnerReference: ownerRef,
++					Namespace:      labels["kustomize.toolkit.fluxcd.io/namespace"],
++				}
++				fluxOwnerRef = &extendedOwnerReference
+ 			}
+ 			// HelmRelease
+ 			if labels["helm.toolkit.fluxcd.io/name"] != "" {
+-				ownerRefs = append(ownerRefs, metav1.OwnerReference{
++				ownerRef := metav1.OwnerReference{
+ 					Name:       labels["helm.toolkit.fluxcd.io/name"],
+ 					Kind:       "HelmRelease",
+ 					APIVersion: "helm.toolkit.fluxcd.io/v2",
+-				})
++				}
++				ownerRefs = append(ownerRefs, ownerRef)
++				extendedOwnerReference := ExtendedOwnerReference{
++					OwnerReference: ownerRef,
++					Namespace:      labels["helm.toolkit.fluxcd.io/namespace"],
++				}
++				fluxOwnerRef = &extendedOwnerReference
+ 			}
+ 		}
+
+ 	}
+
+-	return ownerRefs, isInferredParentOf
++	return ownerRefs, fluxOwnerRef, isInferredParentOf
+ }
+
+ func isStatefulSetChild(un *unstructured.Unstructured) (func(kube.ResourceKey) bool, error) {
+diff --git a/pkg/cache/resource.go b/pkg/cache/resource.go
+index 4097f4d..3225374 100644
+--- a/pkg/cache/resource.go
++++ b/pkg/cache/resource.go
+@@ -18,6 +18,8 @@ type Resource struct {
+ 	Ref v1.ObjectReference
+ 	// References to resource owners
+ 	OwnerRefs []metav1.OwnerReference
++	// Reference to cluster-wide Flux owner
++	FluxOwnerRef *ExtendedOwnerReference
+ 	// Optional creation timestamp of the resource
+ 	CreationTimestamp *metav1.Time
+ 	// Optional additional information about the resource
+@@ -38,6 +40,9 @@ func (r *Resource) isParentOf(child *Resource) bool {
+
+ 		// backfill UID of inferred owner child references
+ 		if ownerRef.UID == "" && r.Ref.Kind == ownerRef.Kind && r.Ref.APIVersion == ownerRef.APIVersion && r.Ref.Name == ownerRef.Name {
++			if child.FluxOwnerRef != nil && ownerRef == child.FluxOwnerRef.OwnerReference {
++				child.FluxOwnerRef.UID = r.Ref.UID
++			}
+ 			ownerRef.UID = r.Ref.UID
+ 			child.OwnerRefs[i] = ownerRef
+ 			return true
+diff --git a/pkg/cache/resource_test.go b/pkg/cache/resource_test.go
+index 0562cc6..e6fec53 100644
+--- a/pkg/cache/resource_test.go
++++ b/pkg/cache/resource_test.go
+@@ -78,3 +78,19 @@ type: kubernetes.io/service-account-token
+
+ 	assert.True(t, serviceAccount.isParentOf(tokenSecret))
+ }
++
++func TestIsHelmReleaseParentOfServiceSameNs(t *testing.T) {
++	assert.True(t, c.newResource(helmRelease).isParentOf(c.newResource(serviceSameNs)))
++}
++
++func TestIsHelmReleaseParentOfServiceOtherNs(t *testing.T) {
++	assert.True(t, c.newResource(helmRelease).isParentOf(c.newResource(serviceOtherNs)))
++}
++
++func TestIsHelmReleaseParentOfClusterRole(t *testing.T) {
++	assert.True(t, c.newResource(helmRelease).isParentOf(c.newResource(clusterRole)))
++}
++
++func TestIsHelmReleaseParentOfExternalServiceSameNs(t *testing.T) {
++	assert.False(t, c.newResource(helmRelease).isParentOf(c.newResource(externalServiceSameNs)))
++}
+diff --git a/pkg/cache/utils_test.go b/pkg/cache/utils_test.go
+new file mode 100644
+index 0000000..4d1aae9
+--- /dev/null
++++ b/pkg/cache/utils_test.go
+@@ -0,0 +1,74 @@
++package cache
++
++// Namespace-scoped resource
++var helmRelease = strToUnstructured(`
++apiVersion: helm.toolkit.fluxcd.io/v2
++kind: HelmRelease
++metadata:
++  labels:
++    argocd.argoproj.io/instance: gitops_contour
++  name: contour
++  namespace: contour
++  resourceVersion: '26862'
++  uid: 3d2ce4ce-5773-44f4-87c4-596b8ed53df0
++spec: {}
++`)
++
++// Cluster-scoped resource
++var clusterRole = strToUnstructured(`
++apiVersion: rbac.authorization.k8s.io/v1
++kind: ClusterRole
++metadata:
++  name: contour-contour
++  uid: c2e59195-8c9c-466a-81de-15dc47addeea
++  resourceVersion: '3130'
++  labels:
++    helm.toolkit.fluxcd.io/name: contour
++    helm.toolkit.fluxcd.io/namespace: contour
++rules: []
++`)
++
++// Namespace-scoped resource
++var serviceSameNs = strToUnstructured(`
++apiVersion: v1
++kind: Service
++metadata:
++  name: contour
++  namespace: contour
++  uid: a9881ae1-2f90-4ef1-83ce-b6f01e14ecde
++  resourceVersion: '3143'
++  labels:
++    helm.toolkit.fluxcd.io/name: contour
++    helm.toolkit.fluxcd.io/namespace: contour
++spec: {}
++`)
++
++// Namespace-scoped resource
++var serviceOtherNs = strToUnstructured(`
++apiVersion: v1
++kind: Service
++metadata:
++  name: contour
++  namespace: not-contour
++  uid: b9881ae1-2f90-4ef1-83ce-b6f01e14ecde
++  resourceVersion: '3143'
++  labels:
++    helm.toolkit.fluxcd.io/name: contour
++    helm.toolkit.fluxcd.io/namespace: contour
++spec: {}
++`)
++
++// Namespace-scoped resource
++var externalServiceSameNs = strToUnstructured(`
++apiVersion: v1
++kind: Service
++metadata:
++  name: not-contour
++  namespace: contour
++  uid: c9881ae1-2f90-4ef1-83ce-b6f01e14ecde
++  resourceVersion: '3143'
++  labels:
++    helm.toolkit.fluxcd.io/name: not-contour
++    helm.toolkit.fluxcd.io/namespace: contour
++spec: {}
++`)

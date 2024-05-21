@@ -1,0 +1,70 @@
+Track cluster-wide resources (GH-3)
+
+From: el1191 <el1191@woyd.ru>
+
+
+---
+ controller/cache/cache.go                          |   25 ++++++++++++++++----
+ .../application-resource-tree.tsx                  |    5 ++--
+ 2 files changed, 23 insertions(+), 7 deletions(-)
+
+diff --git a/controller/cache/cache.go b/controller/cache/cache.go
+index 20879ae4f..914cabcc0 100644
+--- a/controller/cache/cache.go
++++ b/controller/cache/cache.go
+@@ -247,12 +247,27 @@ func asResourceNode(r *clustercache.Resource) appv1.ResourceNode {
+ 	if err != nil {
+ 		gv = schema.GroupVersion{}
+ 	}
+-	parentRefs := make([]appv1.ResourceRef, len(r.OwnerRefs))
+-	for i, ownerRef := range r.OwnerRefs {
+-		ownerGvk := schema.FromAPIVersionAndKind(ownerRef.APIVersion, ownerRef.Kind)
+-		ownerKey := kube.NewResourceKey(ownerGvk.Group, ownerRef.Kind, r.Ref.Namespace, ownerRef.Name)
+-		parentRefs[i] = appv1.ResourceRef{Name: ownerRef.Name, Kind: ownerKey.Kind, Namespace: r.Ref.Namespace, Group: ownerKey.Group, UID: string(ownerRef.UID)}
++	var parentRefs []appv1.ResourceRef = nil
++	// Custom resource ref for Flux with correct namespace
++	if r.FluxOwnerRef != nil {
++		ownerGvk := schema.FromAPIVersionAndKind(r.FluxOwnerRef.APIVersion, r.FluxOwnerRef.Kind)
++		ownerKey := kube.NewResourceKey(ownerGvk.Group, r.FluxOwnerRef.Kind, r.FluxOwnerRef.Namespace, r.FluxOwnerRef.Name)
++		parentRefs = []appv1.ResourceRef{{
++			Name:      r.FluxOwnerRef.Name,
++			Kind:      ownerKey.Kind,
++			Namespace: r.FluxOwnerRef.Namespace,
++			Group:     ownerKey.Group,
++			UID:       string(r.FluxOwnerRef.UID),
++		}}
++	} else {
++		parentRefs = make([]appv1.ResourceRef, len(r.OwnerRefs))
++		for i, ownerRef := range r.OwnerRefs {
++			ownerGvk := schema.FromAPIVersionAndKind(ownerRef.APIVersion, ownerRef.Kind)
++			ownerKey := kube.NewResourceKey(ownerGvk.Group, ownerRef.Kind, r.Ref.Namespace, ownerRef.Name)
++			parentRefs[i] = appv1.ResourceRef{Name: ownerRef.Name, Kind: ownerKey.Kind, Namespace: r.Ref.Namespace, Group: ownerKey.Group, UID: string(ownerRef.UID)}
++		}
+ 	}
++
+ 	var resHealth *appv1.HealthStatus
+ 	resourceInfo := resInfo(r)
+ 	if resourceInfo.Health != nil {
+diff --git a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
+index 06ba5e331..331e9ae4a 100644
+--- a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
++++ b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
+@@ -906,7 +906,7 @@ export const ApplicationResourceTree = (props: ApplicationResourceTreeProps) =>
+                   ]
+                 : []
+     };
+-
++    console.log(props);
+     const statusByKey = new Map<string, models.ResourceStatus>();
+     props.app.status.resources.forEach(res => statusByKey.set(nodeKey(res), res));
+     const nodeByKey = new Map<string, ResourceTreeNode>();
+@@ -1150,7 +1150,8 @@ export const ApplicationResourceTree = (props: ApplicationResourceTreeProps) =>
+             if (treeNodeKey(child) === treeNodeKey(root)) {
+                 return;
+             }
+-            if (node.namespace === child.namespace) {
++            // Flux resource may have cluster-wide child or child in different NS
++            if (node.namespace === child.namespace || node.group?.includes("fluxcd.io")) {
+                 graph.setEdge(treeNodeKey(node), treeNodeKey(child), {colors});
+             }
+             processNode(child, root, colors);

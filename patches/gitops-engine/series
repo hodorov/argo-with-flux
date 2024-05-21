@@ -1,3 +1,4 @@
 # This series applies on Git commit 5fd9f449e75774f6b2b7b1ff137c7759e075e385
 01-add-reference-by-fluxcd.patch
 02-use-helmrelease-v2.patch
+03-track-cluster-wide-resources.patch
