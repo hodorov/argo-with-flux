@@ -1,64 +1,71 @@
 # Argo with Flux
-This repository contains patches to bridge Flux controlled resource with Argo app.
+This repository contains patches to monitor and manage Flux controlled resources from Argo app.
+
 
 # Example
 ## Without patches
 * No resource tracking
-* No custom actions (reconcile/suspend)
+* No custom actions (Reconcile/Suspend)
 ![without_awf](img/without_awf.png)
 
 ## Patched version
-* Actual status of resource from helm-controller/kustomizaion-controller by Flux
-  (In example HelmRelease suspended using the appropriate button)
-* All common actions available in Flux CLI may be performed via UI
-* All resource created by HelmRelease tracked properly
+* Actual statuses of resources from helm-controller/kustomizaion-controller managed by Flux
+  (find the image below)
+* All common actions available in Flux CLI can be performed via Argo UI (at the image below 
+HelmRelease is suspended using the appropriate action button)
+* All resources created by HelmRelease presented and tracked in Argo UI
 ![img.png](img/with_awf.png)
 
 # Important notice
-**HelmRelease must be v2(without beta\* suffix)**, this CR version introduced in **Flux 2.3.0**, so you
-need use **at least this version**(or above)
+**HelmRelease must be v2 (without `beta\*` suffix)**, custom resources were introduced in Flux 2.3.0, **you
+need to use Flux version 2.3.0 or above**.
 
-# Why just not use WeaveWorks GitOps?
-If you use Flux **without** Argo it has its own third-party UI, WeaveWorks GitOps. But developer
+# Why not just use WeaveWorks GitOps?
+If you use Flux **without** Argo, it has its own third-party UI named WeaveWorks GitOps, but the developer
 company was [closed](https://www.crn.com/news/cloud/2024/aws-backed-kubernetes-company-weaveworks-closes-ceo-blames-failed-m-a)
-at the beginning of 2024
+at the beginning of 2024.
 
-If you use Flux **with** Argo - two different UI tools is not so many useful without integration
-between them.
+Using Flux **and** Argo separately brings two different UI tools in your infrastructure with few benefits without
+an integration between them.
 
-Basically, **all main functionality of WeaveWorks GitOps already ported to Argo with patches**
-(CR status, custom actions, tree of controlled resources from app)
+Basically, **all main functions of WeaveWorks GitOps have already been ported into Argo with the patches
+in this project**
+(e.g. custom resources status, custom actions, a tree of the controlled resources from an app).
 
-# Why just not use Argo without Flux?
-Argo has a custom logic about helm chart applying. Before deploy Argo render Helm chart templates,
-it broke some logic of complicated charts. For example - broken hooks lifecycle, unusable lookup
-functionality and some other cases. Main purpose to use Argo with Flux together - Argo deploy
-static manifests, Flux deploy Helm charts
+# Why not just use Argo without Flux?
+Argo applies custom logic to helm charts. Particularly, Argo renders Helm charts' templates before 
+deployments, which can break complicated charts e.g. lifecycle hooks, lookup
+functionality and some other cases.
 
-# Why vanilla Argo can't work with Flux resources?
-By default, **Argo** show nested resource(implicitly created by some manifest from app) **using
-ownerReference metadata** from cluster (as main path) and some corner case logic for custom
-kind of resource. Unfortunately **Flux don't use this logic** because child of Flux resource
-(HelmRelease, as example) may be namespace-scoped OR cluster-wide, but ownerReference can't
-refer between namespaces or between cluster-scoped and namespace-scoped resource. Instead of
-ownerReference Flux use `helm.toolkit.fluxcd.io/name`/`kustomize.toolkit.fluxcd.io/name`
-labels to track parent resource(Kustomization/HelmRelease).
+The main purpose of using Argo with Flux together is to separate responsibilities, Argo deploys
+static manifests, while Flux deploys Helm charts.
 
-To solve this problem we need
-* Patch gitops-engine(core of Argo) to implement owner referencing by Flux labels
-* Recompile Argo with local version of gitops-engine
+# Why vanilla Argo cannot work with Flux resources?
+By default, Argo displays nested resources (resources implicitly created by a manifest from an app) using
+**ownerReference metadata** from a cluster as a main path and applying transformation logic for corner 
+cases and custom resources.
 
-# Additional benefits of patched version
-* Health status for Flux resource
-* Actions for Flux resource - (force) reconcile/suspend/resume from Argo UI
+Unfortunately, **Flux does not use this logic**. A Flux resource's child 
+(e.g. HelmRelease) can be namespace-scoped or cluster-wide, but ownerReference cannot
+refer between namespaces or between cluster-scoped and namespace-scoped resources. Instead of
+ownerReference Flux uses `helm.toolkit.fluxcd.io/name`/`kustomize.toolkit.fluxcd.io/name`
+labels to track parent resource (Kustomization/HelmRelease).
+
+### To solve this issue follow steps:
+1. Patch `gitops-engine` (core of Argo) to implement an owner referencing resources with Flux labels
+1. Recompile Argo with the patched version of `gitops-engine`
+
+# Additional benefits of the patched version
+* Health statuses for Flux resources
+* Extra actions from Argo UI for Flux resources: Reconcile/Force Reconcile/Suspend/Resume
 
 # Versioning
-Example tag: `v2.11.0-awf.g01.a01-main-bac623a5`
+Example version tag: `v2.11.0-awf.g01.a01-main-bac623a5`
 This tag represents a specific version with the following components:
 
 - `v2.11.0`: Base version of ArgoCD
-- `awf`: Static suffix indicates that build support "Argo with Flux" logic
-- `g01`: Patch level for gitops-engine
+- `awf`: Static suffix indicates that the build supports "Argo with Flux" logic
+- `g01`: Patch level for `gitops-engine`
 - `a01`: Patch level for Argo
 - `main`: Git branch where the changes are made
 - `bac623a5`: Commit identifier for the specific changes made in this version
