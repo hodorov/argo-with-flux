@@ -2,3 +2,4 @@
 01-use-pathced-vesion-of-gitops.patch
 02-add-health-actions-for-helm-cr.patch
 03-fix-version.patch
+04-track-cluster-wide-resources.patch
