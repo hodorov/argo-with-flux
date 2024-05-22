@@ -12,6 +12,16 @@
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?( registryUrl=(?<registryUrl>.*?))?\\s.*?_VERSION: \"(?<currentValue>.*)\"\\s"
       ],
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^patches/argo-cd/03-fix-version.patch"],
+      "matchStrings": [
+        "@@ -1 \\+0,0 @@\n-(?<currentValue>.*)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "argoproj/argo-cd",
+      "versioningTemplate": "semver"
     }
   ]
 }
