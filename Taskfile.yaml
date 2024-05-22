@@ -4,7 +4,8 @@ env:
   REPOS: "gitops-engine argo-cd"
   # renovate: datasource=github-tags depName=argoproj/argo-cd
   ARGO_CD_VERSION: "v2.11.1"
-  GITOPS_ENGINE_VERSION: "argo-cd-release-2.11"
+  GITOPS_ENGINE_BRANCH: "master"
+  GITOPS_ENGINE_COMMIT: "fbecbb86e412"
   IMAGE_NAMESPACE: "ghcr.io/hodorov/argo-with-flux"
   GITOPS_ENGINE_LAST_PATH:
     sh: "cat patches/gitops-engine/series | cut -d- -f1 | tail -1"
@@ -26,15 +27,15 @@ tasks:
     label: "clone-{{.REPO}}-{{.VERSION}}"
     cmds:
       - git clone --single-branch -b {{.VERSION}} https://github.com/argoproj/{{.REPO}}
-      - cd {{.REPO}} && git checkout -b patches {{.VERSION}}
+      - cd {{.REPO}} && git checkout -b patches {{.COMMIT}}
       - cd {{.REPO}} && stg init
 
   clone:
     deps:
       - task: _clone
-        vars: { REPO: "gitops-engine", VERSION: "{{.GITOPS_ENGINE_VERSION}}" }
+        vars: { REPO: "gitops-engine", VERSION: "{{.GITOPS_ENGINE_BRANCH}}", COMMIT: "{{.GITOPS_ENGINE_COMMIT}}" }
       - task: _clone
-        vars: { REPO: "argo-cd", VERSION: "{{.ARGO_CD_VERSION}}" }
+        vars: { REPO: "argo-cd", VERSION: "{{.ARGO_CD_VERSION}}", COMMIT: "{{.ARGO_CD_VERSION}}" }
 
   prepare:
     cmds:
