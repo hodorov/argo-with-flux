@@ -3,16 +3,16 @@ version: 3
 env:
   REPOS: "gitops-engine argo-cd"
   # renovate: datasource=github-tags depName=argoproj/argo-cd
-  ARGO_CD_VERSION: "v2.11.3"
-  GITOPS_ENGINE_BRANCH: "master"
-  GITOPS_ENGINE_COMMIT: "fbecbb86e412"
+  ARGO_CD_VERSION: "v2.11.5"
+  GITOPS_ENGINE_BRANCH: "argo-cd-release-2.11"
+  GITOPS_ENGINE_COMMIT: "18ba62e1f1fb"
   IMAGE_NAMESPACE: "ghcr.io/hodorov/argo-with-flux"
   GITOPS_ENGINE_LAST_PATH:
     sh: "cat patches/gitops-engine/series | cut -d- -f1 | tail -1"
   ARGO_CD_LAST_PATH:
     sh: "cat patches/argo-cd/series | cut -d- -f1 | tail -1"
   BRANCH:
-    sh: "[[ -n $GITHUB_REF_NAME ]] && (echo $GITHUB_REF_NAME | tr '/' '-') || git rev-parse --abbrev-ref HEAD"
+    sh: "[[ -n $GITHUB_REF_NAME ]] && (echo $GITHUB_REF_NAME | tr '/' '-') || (git rev-parse --abbrev-ref HEAD | tr '/' '-')"
   COMMIT:
     sh: "([[ -n $GITHUB_SHA ]] && echo $GITHUB_SHA || git rev-parse HEAD) | head -c8"
   VERSION: "{{.ARGO_CD_VERSION}}-awf.g{{.GITOPS_ENGINE_LAST_PATH}}.a{{.ARGO_CD_LAST_PATH}}-{{.BRANCH}}-{{.COMMIT}}"

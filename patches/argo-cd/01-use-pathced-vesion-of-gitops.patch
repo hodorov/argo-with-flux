@@ -43,5 +43,5 @@ index 33b28dd2e..fd11f3073 100644
  	k8s.io/sample-controller => k8s.io/sample-controller v0.26.11
 
 +	// Local patched version
-+	github.com/argoproj/gitops-engine v0.7.1-0.20240416142647-fbecbb86e412 => ./gitops-engine
++	github.com/argoproj/gitops-engine v0.7.1-0.20240715141605-18ba62e1f1fb => ./gitops-engine
  )
