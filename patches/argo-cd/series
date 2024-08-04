@@ -1,5 +1,6 @@
-# This series applies on Git commit d3f33c00197e7f1d16f2a73ce1aeced464b07175
+# This series applies on Git commit c4b283ce0c092aeda00c78ae7b3b2d3b28e7feec
 01-use-pathced-vesion-of-gitops.patch
 02-add-health-actions-for-helm-cr.patch
 03-fix-version.patch
 04-track-cluster-wide-resources.patch
+05-fix-draw-clusterwide-to-ns.patch

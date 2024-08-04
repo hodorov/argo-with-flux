@@ -1,0 +1,31 @@
+Fix draw Clusterwide to NS-scoped and vice versa
+
+From: el1191 <el1191@woyd.ru>
+
+
+---
+ .../application-resource-tree.tsx                  |   11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
+index 331e9ae4a..30867408d 100644
+--- a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
++++ b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
+@@ -1150,8 +1150,15 @@ export const ApplicationResourceTree = (props: ApplicationResourceTreeProps) =>
+             if (treeNodeKey(child) === treeNodeKey(root)) {
+                 return;
+             }
+-            // Flux resource may have cluster-wide child or child in different NS
+-            if (node.namespace === child.namespace || node.group?.includes("fluxcd.io")) {
++            if (
++                node.namespace === child.namespace
++                // Flux resource may have cluster-wide child or child in different NS
++                || node.group?.includes("fluxcd.io")
++                // Clusterwide to NS-scoped
++                || node.namespace == null
++                // NS-scoped to Clusterwide
++                || child.namespace == null
++            ) {
+                 graph.setEdge(treeNodeKey(node), treeNodeKey(child), {colors});
+             }
+             processNode(child, root, colors);
