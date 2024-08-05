@@ -18,7 +18,7 @@ From: el1191 <el1191@woyd.ru>
  create mode 100644 pkg/cache/utils_test.go
 
 diff --git a/pkg/cache/cluster.go b/pkg/cache/cluster.go
-index 2708d22..0db6159 100644
+index 96f9ebe..0d4fac5 100644
 --- a/pkg/cache/cluster.go
 +++ b/pkg/cache/cluster.go
 @@ -369,7 +369,7 @@ func (c *clusterCache) replaceResourceCache(gk schema.GroupKind, resources []*Re
@@ -137,10 +137,10 @@ index 0000000..93aa9a2
 +	Namespace string
 +}
 diff --git a/pkg/cache/references.go b/pkg/cache/references.go
-index 5d112a4..5d19b2d 100644
+index 35492b5..13101b8 100644
 --- a/pkg/cache/references.go
 +++ b/pkg/cache/references.go
-@@ -18,10 +18,11 @@ func mightHaveInferredOwner(r *Resource) bool {
+@@ -17,10 +17,11 @@ func mightHaveInferredOwner(r *Resource) bool {
  	return r.Ref.GroupVersionKind().Group == "" && r.Ref.Kind == kube.PersistentVolumeClaimKind
  }
  
@@ -153,7 +153,7 @@ index 5d112a4..5d19b2d 100644
  
  	switch {
  
-@@ -61,25 +62,37 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
+@@ -60,25 +61,37 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
  			labels := un.GetLabels()
  			// Kustomization
  			if labels["kustomize.toolkit.fluxcd.io/name"] != "" {
