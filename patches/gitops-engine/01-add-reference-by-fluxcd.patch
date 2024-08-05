@@ -8,10 +8,10 @@ From: el1191 <el1191@woyd.ru>
  1 file changed, 22 insertions(+)
 
 diff --git a/pkg/cache/references.go b/pkg/cache/references.go
-index 2189836..861370d 100644
+index cf757fe..4808c4c 100644
 --- a/pkg/cache/references.go
 +++ b/pkg/cache/references.go
-@@ -55,6 +55,28 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
+@@ -54,6 +54,28 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
  		} else {
  			isInferredParentOf = refs
  		}

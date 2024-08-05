@@ -8,10 +8,10 @@ From: el1191 <el1191@woyd.ru>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/pkg/cache/references.go b/pkg/cache/references.go
-index 861370d..5d112a4 100644
+index 4808c4c..35492b5 100644
 --- a/pkg/cache/references.go
 +++ b/pkg/cache/references.go
-@@ -72,7 +72,7 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
+@@ -71,7 +71,7 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
  				ownerRefs = append(ownerRefs, metav1.OwnerReference{
  					Name:       labels["helm.toolkit.fluxcd.io/name"],
  					Kind:       "HelmRelease",
