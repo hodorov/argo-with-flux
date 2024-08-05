@@ -4,8 +4,8 @@ env:
   REPOS: "gitops-engine argo-cd"
   # renovate: datasource=github-tags depName=argoproj/argo-cd
   ARGO_CD_VERSION: "v2.12.0"
-  GITOPS_ENGINE_BRANCH: "argo-cd-release-2.11"
-  GITOPS_ENGINE_COMMIT: "18ba62e1f1fb"
+  GITOPS_ENGINE_BRANCH: "master"
+  GITOPS_ENGINE_COMMIT: "adb68bcaab73"
   IMAGE_NAMESPACE: "ghcr.io/hodorov/argo-with-flux"
   GITOPS_ENGINE_LAST_PATH:
     sh: "cat patches/gitops-engine/series | cut -d- -f1 | tail -1"

@@ -35,13 +35,14 @@ index 5f6a35d99..7fd669009 100644
  RUN go mod download
 
 diff --git a/go.mod b/go.mod
-index 33b28dd2e..fd11f3073 100644
+index 2e43481fd..1e2f4676e 100644
 --- a/go.mod
 +++ b/go.mod
-@@ -339,4 +339,6 @@ replace (
- 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.26.11
- 	k8s.io/sample-controller => k8s.io/sample-controller v0.26.11
-
+@@ -338,4 +338,7 @@ replace (
+ 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.29.6
+ 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.29.6
+ 	k8s.io/sample-controller => k8s.io/sample-controller v0.29.6
++
 +	// Local patched version
-+	github.com/argoproj/gitops-engine v0.7.1-0.20240715141605-18ba62e1f1fb => ./gitops-engine
++	github.com/argoproj/gitops-engine v0.7.1-0.20240714153147-adb68bcaab73 => ./gitops-engine
  )
