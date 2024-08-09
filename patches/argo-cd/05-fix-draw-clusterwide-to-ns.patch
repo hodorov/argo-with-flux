@@ -8,7 +8,7 @@ From: el1191 <el1191@woyd.ru>
  1 file changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
-index 5fbe206ea..738ebfa84 100644
+index c74fe9912..7d660899c 100644
 --- a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
 +++ b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
 @@ -1117,8 +1117,15 @@ export const ApplicationResourceTree = (props: ApplicationResourceTreeProps) =>

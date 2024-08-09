@@ -5,8 +5,8 @@ From: el1191 <el1191@woyd.ru>
 
 ---
  controller/cache/cache.go                          |   25 ++++++++++++++++----
- .../application-resource-tree.tsx                  |    5 ++--
- 2 files changed, 23 insertions(+), 7 deletions(-)
+ .../application-resource-tree.tsx                  |    3 ++
+ 2 files changed, 22 insertions(+), 6 deletions(-)
 
 diff --git a/controller/cache/cache.go b/controller/cache/cache.go
 index bc4c9725f..e41e5e26d 100644
@@ -46,18 +46,9 @@ index bc4c9725f..e41e5e26d 100644
  	resourceInfo := resInfo(r)
  	if resourceInfo.Health != nil {
 diff --git a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
-index 0e1cfb9a0..5fbe206ea 100644
+index 0e1cfb9a0..c74fe9912 100644
 --- a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
 +++ b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
-@@ -873,7 +873,7 @@ export const ApplicationResourceTree = (props: ApplicationResourceTreeProps) =>
-                   ]
-                 : []
-     };
--
-+    console.log(props);
-     const statusByKey = new Map<string, models.ResourceStatus>();
-     props.app.status.resources.forEach(res => statusByKey.set(nodeKey(res), res));
-     const nodeByKey = new Map<string, ResourceTreeNode>();
 @@ -1117,7 +1117,8 @@ export const ApplicationResourceTree = (props: ApplicationResourceTreeProps) =>
              if (treeNodeKey(child) === treeNodeKey(root)) {
                  return;
