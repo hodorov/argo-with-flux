@@ -8,7 +8,7 @@ From: el1191 <el1191@woyd.ru>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/pkg/cache/references.go b/pkg/cache/references.go
-index 4808c4c..35492b5 100644
+index 5316fa6..7183402 100644
 --- a/pkg/cache/references.go
 +++ b/pkg/cache/references.go
 @@ -71,7 +71,7 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)

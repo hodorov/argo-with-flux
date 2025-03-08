@@ -18,10 +18,10 @@ From: el1191 <el1191@woyd.ru>
  create mode 100644 pkg/cache/utils_test.go
 
 diff --git a/pkg/cache/cluster.go b/pkg/cache/cluster.go
-index 96f9ebe..0d4fac5 100644
+index 7e2e621..63ae88b 100644
 --- a/pkg/cache/cluster.go
 +++ b/pkg/cache/cluster.go
-@@ -369,7 +369,7 @@ func (c *clusterCache) replaceResourceCache(gk schema.GroupKind, resources []*Re
+@@ -417,7 +417,7 @@ func (c *clusterCache) replaceResourceCache(gk schema.GroupKind, resources []*Re
  }
  
  func (c *clusterCache) newResource(un *unstructured.Unstructured) *Resource {
@@ -30,7 +30,7 @@ index 96f9ebe..0d4fac5 100644
  
  	cacheManifest := false
  	var info interface{}
-@@ -385,6 +385,7 @@ func (c *clusterCache) newResource(un *unstructured.Unstructured) *Resource {
+@@ -433,6 +433,7 @@ func (c *clusterCache) newResource(un *unstructured.Unstructured) *Resource {
  		ResourceVersion:    un.GetResourceVersion(),
  		Ref:                kube.GetObjectRef(un),
  		OwnerRefs:          ownerRefs,
@@ -38,7 +38,7 @@ index 96f9ebe..0d4fac5 100644
  		Info:               info,
  		CreationTimestamp:  creationTimestamp,
  		isInferredParentOf: isInferredParentOf,
-@@ -974,7 +975,8 @@ func (c *clusterCache) IterateHierarchy(key kube.ResourceKey, action func(resour
+@@ -1061,7 +1062,8 @@ func (c *clusterCache) IterateHierarchy(key kube.ResourceKey, action func(resour
  			return
  		}
  		childrenByUID := make(map[types.UID][]*Resource)
@@ -137,7 +137,7 @@ index 0000000..93aa9a2
 +	Namespace string
 +}
 diff --git a/pkg/cache/references.go b/pkg/cache/references.go
-index 35492b5..13101b8 100644
+index 7183402..b3740bb 100644
 --- a/pkg/cache/references.go
 +++ b/pkg/cache/references.go
 @@ -17,10 +17,11 @@ func mightHaveInferredOwner(r *Resource) bool {
@@ -197,10 +197,10 @@ index 35492b5..13101b8 100644
  
  func isStatefulSetChild(un *unstructured.Unstructured) (func(kube.ResourceKey) bool, error) {
 diff --git a/pkg/cache/resource.go b/pkg/cache/resource.go
-index 4097f4d..3225374 100644
+index eae3d4e..54887a8 100644
 --- a/pkg/cache/resource.go
 +++ b/pkg/cache/resource.go
-@@ -18,6 +18,8 @@ type Resource struct {
+@@ -19,6 +19,8 @@ type Resource struct {
  	Ref v1.ObjectReference
  	// References to resource owners
  	OwnerRefs []metav1.OwnerReference
@@ -209,7 +209,7 @@ index 4097f4d..3225374 100644
  	// Optional creation timestamp of the resource
  	CreationTimestamp *metav1.Time
  	// Optional additional information about the resource
-@@ -38,6 +40,9 @@ func (r *Resource) isParentOf(child *Resource) bool {
+@@ -39,6 +41,9 @@ func (r *Resource) isParentOf(child *Resource) bool {
  
  		// backfill UID of inferred owner child references
  		if ownerRef.UID == "" && r.Ref.Kind == ownerRef.Kind && r.Ref.APIVersion == ownerRef.APIVersion && r.Ref.Name == ownerRef.Name {
