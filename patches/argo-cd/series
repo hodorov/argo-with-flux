@@ -1,6 +1,6 @@
 # This series applies on Git commit ec30a48bce7a60046836e481cd2160e28c59231d
 01-use-pathced-vesion-of-gitops.patch
-02-add-health-actions-for-helm-cr.patch
+02-add-force-reconcile.patch
 03-fix-version.patch
 04-track-cluster-wide-resources.patch
 05-fix-draw-clusterwide-to-ns.patch
