@@ -11,10 +11,10 @@ From: el1191 <el1191@woyd.ru>
  delete mode 100644 VERSION
 
 diff --git a/.gitignore b/.gitignore
-index 8578824df..25ba6f08e 100644
+index fcc379dbc..a716349cc 100644
 --- a/.gitignore
 +++ b/.gitignore
-@@ -28,4 +28,6 @@ cmd/argocd-repo-server/argocd-repo-server
+@@ -29,4 +29,6 @@ cmd/argocd-repo-server/argocd-repo-server
  cmd/argocd-server/argocd-server
  
  # Local pathed version
@@ -23,7 +23,7 @@ index 8578824df..25ba6f08e 100644
 +# Replace on build step
 +VERSION
 diff --git a/Makefile b/Makefile
-index edcb8bfbc..79ab9adaf 100644
+index 8cc1b928d..52e265686 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -174,7 +174,7 @@ endif
@@ -37,7 +37,7 @@ index edcb8bfbc..79ab9adaf 100644
  endif
 diff --git a/VERSION b/VERSION
 deleted file mode 100644
-index d8b698973..000000000
+index a168408c9..000000000
 --- a/VERSION
 +++ /dev/null
 @@ -1 +0,0 @@

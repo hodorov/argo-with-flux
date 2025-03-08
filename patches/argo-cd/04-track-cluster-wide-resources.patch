@@ -9,10 +9,10 @@ From: el1191 <el1191@woyd.ru>
  2 files changed, 22 insertions(+), 6 deletions(-)
 
 diff --git a/controller/cache/cache.go b/controller/cache/cache.go
-index bc4c9725f..e41e5e26d 100644
+index 73a8d0bc6..779d88019 100644
 --- a/controller/cache/cache.go
 +++ b/controller/cache/cache.go
-@@ -249,12 +249,27 @@ func asResourceNode(r *clustercache.Resource) appv1.ResourceNode {
+@@ -273,12 +273,27 @@ func asResourceNode(r *clustercache.Resource) appv1.ResourceNode {
  	if err != nil {
  		gv = schema.GroupVersion{}
  	}
@@ -46,7 +46,7 @@ index bc4c9725f..e41e5e26d 100644
  	resourceInfo := resInfo(r)
  	if resourceInfo.Health != nil {
 diff --git a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
-index 0e1cfb9a0..c74fe9912 100644
+index c32e10092..46d6d5330 100644
 --- a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
 +++ b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
 @@ -1117,7 +1117,8 @@ export const ApplicationResourceTree = (props: ApplicationResourceTreeProps) =>

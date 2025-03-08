@@ -1,4 +1,4 @@
-# This series applies on Git commit ec30a48bce7a60046836e481cd2160e28c59231d
+# This series applies on Git commit 3d901f2037888af302a85f518bea70b33ee8e1c7
 01-use-pathced-vesion-of-gitops.patch
 02-add-force-reconcile.patch
 03-fix-version.patch
