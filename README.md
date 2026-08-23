@@ -52,20 +52,19 @@ ownerReference Flux uses `helm.toolkit.fluxcd.io/name`/`kustomize.toolkit.fluxcd
 labels to track parent resource (Kustomization/HelmRelease).
 
 ### To solve this issue follow steps:
-1. Patch `gitops-engine` (core of Argo) to implement an owner referencing resources with Flux labels
-1. Recompile Argo with the patched version of `gitops-engine`
+1. Patch `gitops-engine` (core of Argo, since Argo CD v3 it is vendored in the `argo-cd` repository) to implement an owner referencing resources with Flux labels
+1. Recompile Argo with the patched `gitops-engine`
 
 # Additional benefits of the patched version
 * Health statuses for Flux resources
 * Extra actions from Argo UI for Flux resources: Reconcile/Force Reconcile/Suspend/Resume
 
 # Versioning
-Example version tag: `v2.11.0-awf.g01.a01-main-bac623a5`
+Example version tag: `v3.5.1-awf.a06-main-bac623a5`
 This tag represents a specific version with the following components:
 
-- `v2.11.0`: Base version of ArgoCD
+- `v3.5.1`: Base version of ArgoCD
 - `awf`: Static suffix indicates that the build supports "Argo with Flux" logic
-- `g01`: Patch level for `gitops-engine`
-- `a01`: Patch level for Argo
+- `a06`: Patch level for the ArgoCD patch series (since Argo CD v3 it includes `gitops-engine` patches as well)
 - `main`: Git branch where the changes are made
 - `bac623a5`: Commit identifier for the specific changes made in this version

@@ -1,25 +1,25 @@
-Add force reconcile
-
+From 6b691da0269fcf765b19c3c0a425315e60759b29 Mon Sep 17 00:00:00 2001
 From: el1191 <el1191@woyd.ru>
-
+Date: Sun, 23 Aug 2026 18:17:15 +0300
+Subject: [PATCH 4/6] Add force reconcile
 
 ---
- .../HelmRelease/actions/discovery.lua              |    2 ++
- .../HelmRelease/actions/force_reconcile/action.lua |    8 ++++++++
- .../ImageRepository/actions/discovery.lua          |    2 ++
- .../actions/force_reconcile/action.lua             |    8 ++++++++
- .../ImageUpdateAutomation/actions/discovery.lua    |    2 ++
- .../actions/force_reconcile/action.lua             |    8 ++++++++
- .../Bucket/actions/discovery.lua                   |    2 ++
- .../Bucket/actions/force_reconcile/action.lua      |    8 ++++++++
- .../GitRepository/actions/discovery.lua            |    2 ++
- .../actions/force_reconcile/action.lua             |    8 ++++++++
- .../HelmChart/actions/discovery.lua                |    2 ++
- .../HelmChart/actions/force_reconcile/action.lua   |    8 ++++++++
- .../HelmRepository/actions/discovery.lua           |    2 ++
- .../actions/force_reconcile/action.lua             |    8 ++++++++
- .../OCIRepository/actions/discovery.lua            |    2 ++
- .../actions/force_reconcile/action.lua             |    8 ++++++++
+ .../HelmRelease/actions/discovery.lua                     | 2 ++
+ .../HelmRelease/actions/force_reconcile/action.lua        | 8 ++++++++
+ .../ImageRepository/actions/discovery.lua                 | 2 ++
+ .../ImageRepository/actions/force_reconcile/action.lua    | 8 ++++++++
+ .../ImageUpdateAutomation/actions/discovery.lua           | 2 ++
+ .../actions/force_reconcile/action.lua                    | 8 ++++++++
+ .../source.toolkit.fluxcd.io/Bucket/actions/discovery.lua | 2 ++
+ .../Bucket/actions/force_reconcile/action.lua             | 8 ++++++++
+ .../GitRepository/actions/discovery.lua                   | 2 ++
+ .../GitRepository/actions/force_reconcile/action.lua      | 8 ++++++++
+ .../HelmChart/actions/discovery.lua                       | 2 ++
+ .../HelmChart/actions/force_reconcile/action.lua          | 8 ++++++++
+ .../HelmRepository/actions/discovery.lua                  | 2 ++
+ .../HelmRepository/actions/force_reconcile/action.lua     | 8 ++++++++
+ .../OCIRepository/actions/discovery.lua                   | 2 ++
+ .../OCIRepository/actions/force_reconcile/action.lua      | 8 ++++++++
  16 files changed, 80 insertions(+)
  create mode 100644 resource_customizations/helm.toolkit.fluxcd.io/HelmRelease/actions/force_reconcile/action.lua
  create mode 100644 resource_customizations/image.toolkit.fluxcd.io/ImageRepository/actions/force_reconcile/action.lua
@@ -31,7 +31,7 @@ From: el1191 <el1191@woyd.ru>
  create mode 100644 resource_customizations/source.toolkit.fluxcd.io/OCIRepository/actions/force_reconcile/action.lua
 
 diff --git a/resource_customizations/helm.toolkit.fluxcd.io/HelmRelease/actions/discovery.lua b/resource_customizations/helm.toolkit.fluxcd.io/HelmRelease/actions/discovery.lua
-index 900099881..177277252 100644
+index 9000998..1772772 100644
 --- a/resource_customizations/helm.toolkit.fluxcd.io/HelmRelease/actions/discovery.lua
 +++ b/resource_customizations/helm.toolkit.fluxcd.io/HelmRelease/actions/discovery.lua
 @@ -1,6 +1,7 @@
@@ -52,7 +52,7 @@ index 900099881..177277252 100644
  
 diff --git a/resource_customizations/helm.toolkit.fluxcd.io/HelmRelease/actions/force_reconcile/action.lua b/resource_customizations/helm.toolkit.fluxcd.io/HelmRelease/actions/force_reconcile/action.lua
 new file mode 100644
-index 000000000..2dee3b45d
+index 0000000..2dee3b4
 --- /dev/null
 +++ b/resource_customizations/helm.toolkit.fluxcd.io/HelmRelease/actions/force_reconcile/action.lua
 @@ -0,0 +1,8 @@
@@ -65,7 +65,7 @@ index 000000000..2dee3b45d
 +
 +return obj
 diff --git a/resource_customizations/image.toolkit.fluxcd.io/ImageRepository/actions/discovery.lua b/resource_customizations/image.toolkit.fluxcd.io/ImageRepository/actions/discovery.lua
-index 900099881..177277252 100644
+index 9000998..1772772 100644
 --- a/resource_customizations/image.toolkit.fluxcd.io/ImageRepository/actions/discovery.lua
 +++ b/resource_customizations/image.toolkit.fluxcd.io/ImageRepository/actions/discovery.lua
 @@ -1,6 +1,7 @@
@@ -86,7 +86,7 @@ index 900099881..177277252 100644
  
 diff --git a/resource_customizations/image.toolkit.fluxcd.io/ImageRepository/actions/force_reconcile/action.lua b/resource_customizations/image.toolkit.fluxcd.io/ImageRepository/actions/force_reconcile/action.lua
 new file mode 100644
-index 000000000..2dee3b45d
+index 0000000..2dee3b4
 --- /dev/null
 +++ b/resource_customizations/image.toolkit.fluxcd.io/ImageRepository/actions/force_reconcile/action.lua
 @@ -0,0 +1,8 @@
@@ -99,7 +99,7 @@ index 000000000..2dee3b45d
 +
 +return obj
 diff --git a/resource_customizations/image.toolkit.fluxcd.io/ImageUpdateAutomation/actions/discovery.lua b/resource_customizations/image.toolkit.fluxcd.io/ImageUpdateAutomation/actions/discovery.lua
-index 900099881..177277252 100644
+index 9000998..1772772 100644
 --- a/resource_customizations/image.toolkit.fluxcd.io/ImageUpdateAutomation/actions/discovery.lua
 +++ b/resource_customizations/image.toolkit.fluxcd.io/ImageUpdateAutomation/actions/discovery.lua
 @@ -1,6 +1,7 @@
@@ -120,7 +120,7 @@ index 900099881..177277252 100644
  
 diff --git a/resource_customizations/image.toolkit.fluxcd.io/ImageUpdateAutomation/actions/force_reconcile/action.lua b/resource_customizations/image.toolkit.fluxcd.io/ImageUpdateAutomation/actions/force_reconcile/action.lua
 new file mode 100644
-index 000000000..2dee3b45d
+index 0000000..2dee3b4
 --- /dev/null
 +++ b/resource_customizations/image.toolkit.fluxcd.io/ImageUpdateAutomation/actions/force_reconcile/action.lua
 @@ -0,0 +1,8 @@
@@ -133,7 +133,7 @@ index 000000000..2dee3b45d
 +
 +return obj
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/Bucket/actions/discovery.lua b/resource_customizations/source.toolkit.fluxcd.io/Bucket/actions/discovery.lua
-index 900099881..177277252 100644
+index 9000998..1772772 100644
 --- a/resource_customizations/source.toolkit.fluxcd.io/Bucket/actions/discovery.lua
 +++ b/resource_customizations/source.toolkit.fluxcd.io/Bucket/actions/discovery.lua
 @@ -1,6 +1,7 @@
@@ -154,7 +154,7 @@ index 900099881..177277252 100644
  
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/Bucket/actions/force_reconcile/action.lua b/resource_customizations/source.toolkit.fluxcd.io/Bucket/actions/force_reconcile/action.lua
 new file mode 100644
-index 000000000..2dee3b45d
+index 0000000..2dee3b4
 --- /dev/null
 +++ b/resource_customizations/source.toolkit.fluxcd.io/Bucket/actions/force_reconcile/action.lua
 @@ -0,0 +1,8 @@
@@ -167,7 +167,7 @@ index 000000000..2dee3b45d
 +
 +return obj
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/GitRepository/actions/discovery.lua b/resource_customizations/source.toolkit.fluxcd.io/GitRepository/actions/discovery.lua
-index 900099881..177277252 100644
+index 9000998..1772772 100644
 --- a/resource_customizations/source.toolkit.fluxcd.io/GitRepository/actions/discovery.lua
 +++ b/resource_customizations/source.toolkit.fluxcd.io/GitRepository/actions/discovery.lua
 @@ -1,6 +1,7 @@
@@ -188,7 +188,7 @@ index 900099881..177277252 100644
  
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/GitRepository/actions/force_reconcile/action.lua b/resource_customizations/source.toolkit.fluxcd.io/GitRepository/actions/force_reconcile/action.lua
 new file mode 100644
-index 000000000..2dee3b45d
+index 0000000..2dee3b4
 --- /dev/null
 +++ b/resource_customizations/source.toolkit.fluxcd.io/GitRepository/actions/force_reconcile/action.lua
 @@ -0,0 +1,8 @@
@@ -201,7 +201,7 @@ index 000000000..2dee3b45d
 +
 +return obj
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/HelmChart/actions/discovery.lua b/resource_customizations/source.toolkit.fluxcd.io/HelmChart/actions/discovery.lua
-index 900099881..177277252 100644
+index 9000998..1772772 100644
 --- a/resource_customizations/source.toolkit.fluxcd.io/HelmChart/actions/discovery.lua
 +++ b/resource_customizations/source.toolkit.fluxcd.io/HelmChart/actions/discovery.lua
 @@ -1,6 +1,7 @@
@@ -222,7 +222,7 @@ index 900099881..177277252 100644
  
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/HelmChart/actions/force_reconcile/action.lua b/resource_customizations/source.toolkit.fluxcd.io/HelmChart/actions/force_reconcile/action.lua
 new file mode 100644
-index 000000000..2dee3b45d
+index 0000000..2dee3b4
 --- /dev/null
 +++ b/resource_customizations/source.toolkit.fluxcd.io/HelmChart/actions/force_reconcile/action.lua
 @@ -0,0 +1,8 @@
@@ -235,7 +235,7 @@ index 000000000..2dee3b45d
 +
 +return obj
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/HelmRepository/actions/discovery.lua b/resource_customizations/source.toolkit.fluxcd.io/HelmRepository/actions/discovery.lua
-index 900099881..177277252 100644
+index 9000998..1772772 100644
 --- a/resource_customizations/source.toolkit.fluxcd.io/HelmRepository/actions/discovery.lua
 +++ b/resource_customizations/source.toolkit.fluxcd.io/HelmRepository/actions/discovery.lua
 @@ -1,6 +1,7 @@
@@ -256,7 +256,7 @@ index 900099881..177277252 100644
  
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/HelmRepository/actions/force_reconcile/action.lua b/resource_customizations/source.toolkit.fluxcd.io/HelmRepository/actions/force_reconcile/action.lua
 new file mode 100644
-index 000000000..2dee3b45d
+index 0000000..2dee3b4
 --- /dev/null
 +++ b/resource_customizations/source.toolkit.fluxcd.io/HelmRepository/actions/force_reconcile/action.lua
 @@ -0,0 +1,8 @@
@@ -269,7 +269,7 @@ index 000000000..2dee3b45d
 +
 +return obj
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/OCIRepository/actions/discovery.lua b/resource_customizations/source.toolkit.fluxcd.io/OCIRepository/actions/discovery.lua
-index 900099881..177277252 100644
+index 9000998..1772772 100644
 --- a/resource_customizations/source.toolkit.fluxcd.io/OCIRepository/actions/discovery.lua
 +++ b/resource_customizations/source.toolkit.fluxcd.io/OCIRepository/actions/discovery.lua
 @@ -1,6 +1,7 @@
@@ -290,7 +290,7 @@ index 900099881..177277252 100644
  
 diff --git a/resource_customizations/source.toolkit.fluxcd.io/OCIRepository/actions/force_reconcile/action.lua b/resource_customizations/source.toolkit.fluxcd.io/OCIRepository/actions/force_reconcile/action.lua
 new file mode 100644
-index 000000000..2dee3b45d
+index 0000000..2dee3b4
 --- /dev/null
 +++ b/resource_customizations/source.toolkit.fluxcd.io/OCIRepository/actions/force_reconcile/action.lua
 @@ -0,0 +1,8 @@
@@ -302,3 +302,6 @@ index 000000000..2dee3b45d
 +obj.metadata.annotations["reconcile.fluxcd.io/forceAt"] = "By Argo CD at: " .. os.date("!%Y-%m-%dT%X")
 +
 +return obj
+-- 
+2.54.0
+

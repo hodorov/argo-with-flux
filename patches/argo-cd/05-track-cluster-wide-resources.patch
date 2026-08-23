@@ -1,0 +1,46 @@
+From f02796ac896dac2a3c74772c1c34a38e4d583baf Mon Sep 17 00:00:00 2001
+From: el1191 <el1191@woyd.ru>
+Date: Sun, 23 Aug 2026 18:17:52 +0300
+Subject: [PATCH 5/6] Track cluster-wide resources
+
+---
+ controller/cache/cache.go                                   | 6 ++++++
+ .../application-resource-tree/application-resource-tree.tsx | 5 ++++-
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/controller/cache/cache.go b/controller/cache/cache.go
+index dc66e78..731c382 100644
+--- a/controller/cache/cache.go
++++ b/controller/cache/cache.go
+@@ -302,6 +302,12 @@ func asResourceNode(r *clustercache.Resource, namespaceResources map[kube.Resour
+ 					r.Ref.Kind, r.Ref.Name, r.Ref.Namespace, ownerGvk.Kind, ownerRef.Name)
+ 			}
+ 		}
++		// A Flux owner (Kustomization/HelmRelease) may live in a different
++		// namespace than its children (or the child may be cluster-wide),
++		// so use the namespace from the Flux owner reference
++		if r.FluxOwnerRef != nil && ownerRef.Kind == r.FluxOwnerRef.Kind && ownerRef.Name == r.FluxOwnerRef.Name {
++			parentRef.Namespace = r.FluxOwnerRef.Namespace
++		}
+ 		parentRefs[i] = parentRef
+ 	}
+ 	var resHealth *appv1.HealthStatus
+diff --git a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
+index ecc1056..deee5a0 100644
+--- a/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
++++ b/ui/src/app/applications/components/application-resource-tree/application-resource-tree.tsx
+@@ -1353,7 +1353,10 @@ export const ApplicationResourceTree = (props: ApplicationResourceTreeProps) =>
+             }
+             // Draw edge if nodes are in same namespace OR if parent is cluster-scoped (empty/undefined namespace)
+             const isParentClusterScoped = !node.namespace || node.namespace === '';
+-            if (node.namespace === child.namespace || isParentClusterScoped) {
++            // A Flux parent may have a child in a different namespace or a cluster-wide child
++            const isFluxParent = node.group?.includes('fluxcd.io');
++            const isChildClusterScoped = !child.namespace || child.namespace === '';
++            if (node.namespace === child.namespace || isParentClusterScoped || isFluxParent || isChildClusterScoped) {
+                 graph.setEdge(treeNodeKey(node), treeNodeKey(child), {colors});
+             }
+             processNode(child, root, colors);
+-- 
+2.54.0
+

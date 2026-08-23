@@ -15,7 +15,7 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["^patches/argo-cd/03-fix-version.patch"],
+      "fileMatch": ["^patches/argo-cd/06-fix-version.patch"],
       "matchStrings": [
         "@@ -1 \\+0,0 @@\n-(?<currentValue>.*)"
       ],

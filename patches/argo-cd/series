@@ -1,6 +1,7 @@
-# This series applies on Git commit 3d901f2037888af302a85f518bea70b33ee8e1c7
-01-use-pathced-vesion-of-gitops.patch
-02-add-force-reconcile.patch
-03-fix-version.patch
-04-track-cluster-wide-resources.patch
-05-fix-draw-clusterwide-to-ns.patch
+# This series applies on Git commit 109ca7ca71139e514114499d294a492e7910a965
+01-add-reference-by-fluxcd.patch
+02-track-flux-owner-namespace.patch
+03-traverse-cross-namespace-children.patch
+04-add-force-reconcile.patch
+05-track-cluster-wide-resources.patch
+06-fix-version.patch

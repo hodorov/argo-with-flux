@@ -1,0 +1,140 @@
+From 538369b3950c77e90911cdc390404a4364622bce Mon Sep 17 00:00:00 2001
+From: el1191 <el1191@woyd.ru>
+Date: Sun, 23 Aug 2026 18:17:09 +0300
+Subject: [PATCH 2/6] Track Flux owner namespace
+
+---
+ gitops-engine/pkg/cache/cluster.go            |  3 ++-
+ .../pkg/cache/extended_owner_reference.go     | 14 +++++++++++
+ gitops-engine/pkg/cache/references.go         | 25 ++++++++++++++-----
+ gitops-engine/pkg/cache/resource.go           |  5 ++++
+ 4 files changed, 40 insertions(+), 7 deletions(-)
+ create mode 100644 gitops-engine/pkg/cache/extended_owner_reference.go
+
+diff --git a/gitops-engine/pkg/cache/cluster.go b/gitops-engine/pkg/cache/cluster.go
+index 9ddfce2..8988e42 100644
+--- a/gitops-engine/pkg/cache/cluster.go
++++ b/gitops-engine/pkg/cache/cluster.go
+@@ -455,7 +455,7 @@ func (c *clusterCache) replaceResourceCache(gk schema.GroupKind, resources []*Re
+ }
+ 
+ func (c *clusterCache) newResource(un *unstructured.Unstructured) *Resource {
+-	ownerRefs, isInferredParentOf := c.resolveResourceReferences(un)
++	ownerRefs, fluxOwnerRef, isInferredParentOf := c.resolveResourceReferences(un)
+ 
+ 	cacheManifest := false
+ 	var info any
+@@ -471,6 +471,7 @@ func (c *clusterCache) newResource(un *unstructured.Unstructured) *Resource {
+ 		ResourceVersion:    un.GetResourceVersion(),
+ 		Ref:                kube.GetObjectRef(un),
+ 		OwnerRefs:          ownerRefs,
++		FluxOwnerRef:       fluxOwnerRef,
+ 		Info:               info,
+ 		CreationTimestamp:  creationTimestamp,
+ 		isInferredParentOf: isInferredParentOf,
+diff --git a/gitops-engine/pkg/cache/extended_owner_reference.go b/gitops-engine/pkg/cache/extended_owner_reference.go
+new file mode 100644
+index 0000000..348f4f2
+--- /dev/null
++++ b/gitops-engine/pkg/cache/extended_owner_reference.go
+@@ -0,0 +1,14 @@
++package cache
++
++import (
++	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++)
++
++// ExtendedOwnerReference is an owner reference with the namespace of the owner.
++// Needed for Flux-managed resources, whose owner (Kustomization/HelmRelease)
++// can live in a different namespace than the managed resource, or the
++// managed resource can be cluster-wide.
++type ExtendedOwnerReference struct {
++	metav1.OwnerReference
++	Namespace string
++}
+\ No newline at end of file
+diff --git a/gitops-engine/pkg/cache/references.go b/gitops-engine/pkg/cache/references.go
+index 1b37870..d4dfe06 100644
+--- a/gitops-engine/pkg/cache/references.go
++++ b/gitops-engine/pkg/cache/references.go
+@@ -18,10 +18,11 @@ func mightHaveInferredOwner(r *Resource) bool {
+ 	return r.Ref.GroupVersionKind().Group == "" && r.Ref.Kind == kube.PersistentVolumeClaimKind
+ }
+ 
+-func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured) ([]metav1.OwnerReference, func(kube.ResourceKey) bool) {
++func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured) ([]metav1.OwnerReference, *ExtendedOwnerReference, func(kube.ResourceKey) bool) {
+ 	var isInferredParentOf func(_ kube.ResourceKey) bool
+ 	ownerRefs := un.GetOwnerReferences()
+ 	gvk := un.GroupVersionKind()
++	var fluxOwnerRef *ExtendedOwnerReference = nil
+ 
+ 	switch {
+ 	// Special case for endpoint. Remove after https://github.com/kubernetes/kubernetes/issues/28483 is fixed
+@@ -62,24 +63,36 @@ func (c *clusterCache) resolveResourceReferences(un *unstructured.Unstructured)
+ 			labels := un.GetLabels()
+ 			// Kustomization
+ 			if labels["kustomize.toolkit.fluxcd.io/name"] != "" {
+-				ownerRefs = append(ownerRefs, metav1.OwnerReference{
++				ownerRef := metav1.OwnerReference{
+ 					Name:       labels["kustomize.toolkit.fluxcd.io/name"],
+ 					Kind:       "Kustomization",
+ 					APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+-				})
++				}
++				ownerRefs = append(ownerRefs, ownerRef)
++				extendedOwnerReference := ExtendedOwnerReference{
++					OwnerReference: ownerRef,
++					Namespace:      labels["kustomize.toolkit.fluxcd.io/namespace"],
++				}
++				fluxOwnerRef = &extendedOwnerReference
+ 			}
+ 			// HelmRelease
+ 			if labels["helm.toolkit.fluxcd.io/name"] != "" {
+-				ownerRefs = append(ownerRefs, metav1.OwnerReference{
++				ownerRef := metav1.OwnerReference{
+ 					Name:       labels["helm.toolkit.fluxcd.io/name"],
+ 					Kind:       "HelmRelease",
+ 					APIVersion: "helm.toolkit.fluxcd.io/v2",
+-				})
++				}
++				ownerRefs = append(ownerRefs, ownerRef)
++				extendedOwnerReference := ExtendedOwnerReference{
++					OwnerReference: ownerRef,
++					Namespace:      labels["helm.toolkit.fluxcd.io/namespace"],
++				}
++				fluxOwnerRef = &extendedOwnerReference
+ 			}
+ 		}
+ 	}
+ 
+-	return ownerRefs, isInferredParentOf
++	return ownerRefs, fluxOwnerRef, isInferredParentOf
+ }
+ 
+ func isStatefulSetChild(un *unstructured.Unstructured) (func(kube.ResourceKey) bool, error) {
+diff --git a/gitops-engine/pkg/cache/resource.go b/gitops-engine/pkg/cache/resource.go
+index 80925d2..c381dd1 100644
+--- a/gitops-engine/pkg/cache/resource.go
++++ b/gitops-engine/pkg/cache/resource.go
+@@ -20,6 +20,8 @@ type Resource struct {
+ 	Ref corev1.ObjectReference
+ 	// References to resource owners
+ 	OwnerRefs []metav1.OwnerReference
++	// Reference to cluster-wide or cross-namespace Flux owner
++	FluxOwnerRef *ExtendedOwnerReference
+ 	// Optional creation timestamp of the resource
+ 	CreationTimestamp *metav1.Time
+ 	// Optional additional information about the resource
+@@ -39,6 +41,9 @@ func (r *Resource) isParentOf(child *Resource) bool {
+ 	for i, ownerRef := range child.OwnerRefs {
+ 		// backfill UID of inferred owner child references
+ 		if ownerRef.UID == "" && r.Ref.Kind == ownerRef.Kind && r.Ref.APIVersion == ownerRef.APIVersion && r.Ref.Name == ownerRef.Name {
++			if child.FluxOwnerRef != nil && ownerRef == child.FluxOwnerRef.OwnerReference {
++				child.FluxOwnerRef.UID = r.Ref.UID
++			}
+ 			ownerRef.UID = r.Ref.UID
+ 			child.OwnerRefs[i] = ownerRef
+ 			return true
+-- 
+2.54.0
+

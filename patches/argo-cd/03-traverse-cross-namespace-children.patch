@@ -1,0 +1,203 @@
+From 8c3e3d5ff5e1b7fc280a2c98df24dd1ae0828a39 Mon Sep 17 00:00:00 2001
+From: el1191 <el1191@woyd.ru>
+Date: Sun, 23 Aug 2026 18:17:09 +0300
+Subject: [PATCH 3/6] Traverse cross-namespace Flux children
+
+---
+ gitops-engine/pkg/cache/cluster.go            |  21 +++
+ .../pkg/cache/flux_reference_test.go          | 150 ++++++++++++++++++
+ 2 files changed, 171 insertions(+)
+ create mode 100644 gitops-engine/pkg/cache/flux_reference_test.go
+
+diff --git a/gitops-engine/pkg/cache/cluster.go b/gitops-engine/pkg/cache/cluster.go
+index 8988e42..6c1656b 100644
+--- a/gitops-engine/pkg/cache/cluster.go
++++ b/gitops-engine/pkg/cache/cluster.go
+@@ -1454,6 +1454,27 @@ func (c *clusterCache) processNamespaceHierarchy(
+ 				}
+ 			}
+ 		}
++		// Flux owners (Kustomization/HelmRelease) may manage resources in other
++		// namespaces or cluster-wide resources, so also look for their children
++		// across the whole cache, not only in the parent's namespace
++		for _, child := range c.resources {
++			childKey := child.ResourceKey()
++			if childKey.Namespace == key.Namespace || actionCallState[childKey] != notCalled || !res.isParentOf(child) {
++				continue
++			}
++			childNs := c.nsIndex[childKey.Namespace]
++			if !action(child, childNs) {
++				continue
++			}
++			actionCallState[childKey] = inProgress
++			child.iterateChildrenV2(buildGraph(childNs), childNs, actionCallState, func(err error, child *Resource, namespaceResources map[kube.ResourceKey]*Resource) bool {
++				if err != nil {
++					c.log.V(2).Info(err.Error())
++					return false
++				}
++				return action(child, namespaceResources)
++			})
++		}
+ 		actionCallState[key] = completed
+ 	}
+ }
+diff --git a/gitops-engine/pkg/cache/flux_reference_test.go b/gitops-engine/pkg/cache/flux_reference_test.go
+new file mode 100644
+index 0000000..7020fc6
+--- /dev/null
++++ b/gitops-engine/pkg/cache/flux_reference_test.go
+@@ -0,0 +1,150 @@
++package cache
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
++	"k8s.io/apimachinery/pkg/runtime/schema"
++	"k8s.io/client-go/rest"
++
++	"github.com/argoproj/argo-cd/gitops-engine/pkg/utils/kube"
++)
++
++// Flux parent (namespace-scoped)
++var fluxHelmRelease = strToUnstructured(`
++apiVersion: helm.toolkit.fluxcd.io/v2
++kind: HelmRelease
++metadata:
++  labels:
++    argocd.argoproj.io/instance: gitops_contour
++  name: contour
++  namespace: contour
++  resourceVersion: '26862'
++  uid: 3d2ce4ce-5773-44f4-87c4-596b8ed53df0
++spec: {}
++`)
++
++// Cluster-wide resource managed by the Flux parent
++var fluxClusterRole = strToUnstructured(`
++apiVersion: rbac.authorization.k8s.io/v1
++kind: ClusterRole
++metadata:
++  name: contour-contour
++  uid: c2e59195-8c9c-466a-81de-15dc47addeea
++  resourceVersion: '3130'
++  labels:
++    helm.toolkit.fluxcd.io/name: contour
++    helm.toolkit.fluxcd.io/namespace: contour
++rules: []
++`)
++
++// Namespace-scoped resource in the same namespace as the Flux parent
++var fluxServiceSameNs = strToUnstructured(`
++apiVersion: v1
++kind: Service
++metadata:
++  name: contour
++  namespace: contour
++  uid: a9881ae1-2f90-4ef1-83ce-b6f01e14ecde
++  resourceVersion: '3143'
++  labels:
++    helm.toolkit.fluxcd.io/name: contour
++    helm.toolkit.fluxcd.io/namespace: contour
++spec: {}
++`)
++
++// Namespace-scoped resource in another namespace, managed by the Flux parent
++var fluxServiceOtherNs = strToUnstructured(`
++apiVersion: v1
++kind: Service
++metadata:
++  name: contour
++  namespace: not-contour
++  uid: b9881ae1-2f90-4ef1-83ce-b6f01e14ecde
++  resourceVersion: '3143'
++  labels:
++    helm.toolkit.fluxcd.io/name: contour
++    helm.toolkit.fluxcd.io/namespace: contour
++spec: {}
++`)
++
++// Namespace-scoped resource in the same namespace, but managed by another Flux parent
++var fluxExternalServiceSameNs = strToUnstructured(`
++apiVersion: v1
++kind: Service
++metadata:
++  name: not-contour
++  namespace: contour
++  uid: c9881ae1-2f90-4ef1-83ce-b6f01e14ecde
++  resourceVersion: '3143'
++  labels:
++    helm.toolkit.fluxcd.io/name: not-contour
++    helm.toolkit.fluxcd.io/namespace: contour
++spec: {}
++`)
++
++var fluxClusterCache = NewClusterCache(&rest.Config{})
++
++func TestFluxIsParentOfServiceSameNs(t *testing.T) {
++	assert.True(t, fluxClusterCache.newResource(fluxHelmRelease).isParentOf(fluxClusterCache.newResource(fluxServiceSameNs)))
++}
++
++func TestFluxIsParentOfServiceOtherNs(t *testing.T) {
++	parent := fluxClusterCache.newResource(fluxHelmRelease)
++	child := fluxClusterCache.newResource(fluxServiceOtherNs)
++	assert.True(t, parent.isParentOf(child))
++	assert.Equal(t, string(parent.Ref.UID), string(child.FluxOwnerRef.UID))
++}
++
++func TestFluxIsParentOfClusterRole(t *testing.T) {
++	assert.True(t, fluxClusterCache.newResource(fluxHelmRelease).isParentOf(fluxClusterCache.newResource(fluxClusterRole)))
++}
++
++func TestFluxIsNotParentOfExternalServiceSameNs(t *testing.T) {
++	assert.False(t, fluxClusterCache.newResource(fluxHelmRelease).isParentOf(fluxClusterCache.newResource(fluxExternalServiceSameNs)))
++}
++
++func TestFluxHelmReleaseHierarchy(t *testing.T) {
++	cluster := newCluster(t, fluxServiceSameNs.DeepCopyObject(), fluxExternalServiceSameNs.DeepCopyObject(), fluxServiceOtherNs.DeepCopyObject(), fluxClusterRole.DeepCopyObject(), fluxHelmRelease.DeepCopyObject()).
++		WithAPIResources([]kube.APIResourceInfo{
++			{
++				GroupKind:            schema.GroupKind{Group: "", Kind: "Service"},
++				GroupVersionResource: schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
++				Meta:                 metav1.APIResource{Namespaced: true},
++			},
++			{
++				GroupKind:            schema.GroupKind{Group: "rbac.authorization.k8s.io", Kind: "ClusterRole"},
++				GroupVersionResource: schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"},
++				Meta:                 metav1.APIResource{Namespaced: false},
++			},
++			{
++				GroupKind:            schema.GroupKind{Group: "helm.toolkit.fluxcd.io", Kind: "HelmRelease"},
++				GroupVersionResource: schema.GroupVersionResource{Group: "helm.toolkit.fluxcd.io", Version: "v2", Resource: "helmreleases"},
++				Meta:                 metav1.APIResource{Namespaced: true},
++			},
++		})
++	err := cluster.EnsureSynced()
++	require.NoError(t, err)
++
++	for _, obj := range []*unstructured.Unstructured{fluxServiceSameNs, fluxServiceOtherNs, fluxClusterRole} {
++		resource := cluster.resources[kube.ResourceKey{
++			Group:     obj.GetObjectKind().GroupVersionKind().Group,
++			Kind:      obj.GetKind(),
++			Namespace: obj.GetNamespace(),
++			Name:      obj.GetName(),
++		}]
++		require.NotNil(t, resource)
++		assert.Len(t, resource.OwnerRefs, 1)
++		assert.Equal(t, fluxHelmRelease.GetObjectKind().GroupVersionKind().GroupVersion().String(), resource.OwnerRefs[0].APIVersion)
++		assert.Equal(t, fluxHelmRelease.GetName(), resource.OwnerRefs[0].Name)
++		require.NotNil(t, resource.FluxOwnerRef)
++		assert.Equal(t, fluxHelmRelease.GetNamespace(), resource.FluxOwnerRef.Namespace)
++	}
++
++	// The namespaced Flux parent must see its children in other namespaces and cluster-wide resources
++	children := getChildren(cluster, fluxHelmRelease)
++	assert.Len(t, children, 3)
++}
+\ No newline at end of file
+-- 
+2.54.0
+
