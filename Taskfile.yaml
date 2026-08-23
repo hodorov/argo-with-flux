@@ -1,47 +1,35 @@
 version: 3
 
 env:
-  REPOS: "gitops-engine argo-cd"
+  REPOS: "argo-cd"
   # renovate: datasource=github-tags depName=argoproj/argo-cd
-  ARGO_CD_VERSION: "v2.14.4"
-  GITOPS_ENGINE_BRANCH: "release-2.14"
-  GITOPS_ENGINE_COMMIT: "43fce7ce19f1"
+  ARGO_CD_VERSION: "v3.5.1"
   IMAGE_NAMESPACE: "ghcr.io/hodorov/argo-with-flux"
-  GITOPS_ENGINE_LAST_PATH:
-    sh: "cat patches/gitops-engine/series | cut -d- -f1 | tail -1"
   ARGO_CD_LAST_PATH:
     sh: "cat patches/argo-cd/series | cut -d- -f1 | tail -1"
   BRANCH:
     sh: "[[ -n $GITHUB_REF_NAME ]] && (echo $GITHUB_REF_NAME | tr '/' '-') || (git rev-parse --abbrev-ref HEAD | tr '/' '-')"
   COMMIT:
     sh: "([[ -n $GITHUB_SHA ]] && echo $GITHUB_SHA || git rev-parse HEAD) | head -c8"
-  VERSION: "{{.ARGO_CD_VERSION}}-awf.g{{.GITOPS_ENGINE_LAST_PATH}}.a{{.ARGO_CD_LAST_PATH}}-{{.BRANCH}}-{{.COMMIT}}"
+  VERSION: "{{.ARGO_CD_VERSION}}-awf.a{{.ARGO_CD_LAST_PATH}}-{{.BRANCH}}-{{.COMMIT}}"
 tasks:
   cleanup:
     cmds:
       - cmd: rm -rf ./{{.ITEM}}
         for: { var: REPOS }
 
-  _clone:
-    internal: true
-    label: "clone-{{.REPO}}-{{.VERSION}}"
-    cmds:
-      - git clone --single-branch -b {{.VERSION}} https://github.com/argoproj/{{.REPO}}
-      - cd {{.REPO}} && git checkout -b patches {{.COMMIT}}
-      - cd {{.REPO}} && stg init
-
+  # Since Argo CD v3 gitops-engine is vendored in the argo-cd repository
+  # (module github.com/argoproj/argo-cd/gitops-engine), so only one repo is cloned
   clone:
-    deps:
-      - task: _clone
-        vars: { REPO: "gitops-engine", VERSION: "{{.GITOPS_ENGINE_BRANCH}}", COMMIT: "{{.GITOPS_ENGINE_COMMIT}}" }
-      - task: _clone
-        vars: { REPO: "argo-cd", VERSION: "{{.ARGO_CD_VERSION}}", COMMIT: "{{.ARGO_CD_VERSION}}" }
+    cmds:
+      - git clone --single-branch -b {{.ARGO_CD_VERSION}} https://github.com/argoproj/argo-cd
+      - cd argo-cd && git checkout -b patches
+      - cd argo-cd && stg init
 
   prepare:
     cmds:
       - task: cleanup
       - task: clone
-      - ln -s ../gitops-engine argo-cd/gitops-engine
 
   patch:
     cmds:
@@ -50,8 +38,6 @@ tasks:
 
   build:
     cmds:
-      - rm -rf argo-cd/gitops-engine
-      - cp -r gitops-engine argo-cd/gitops-engine
       - echo '{{.VERSION}}' | cut -c 2- > argo-cd/VERSION
       - >
         cd argo-cd && BUILDKIT_PROGRESS=plain DOCKER_BUILDKIT=1 docker build
