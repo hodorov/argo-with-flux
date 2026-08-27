@@ -3,7 +3,7 @@ version: 3
 env:
   REPOS: "argo-cd"
   # renovate: datasource=github-tags depName=argoproj/argo-cd
-  ARGO_CD_VERSION: "v3.5.1"
+  ARGO_CD_VERSION: "v3.5.2"
   IMAGE_NAMESPACE: "ghcr.io/hodorov/argo-with-flux"
   ARGO_CD_LAST_PATH:
     sh: "cat patches/argo-cd/series | cut -d- -f1 | tail -1"
